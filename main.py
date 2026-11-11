@@ -5,13 +5,13 @@ from google import genai
 
 app = Flask(__name__)
 
-# Lấy các biến môi trường cấu hình trên Render
+# Lấy biến môi trường từ Render
 ZALO_TOKEN = os.environ.get("ZALO_BOT_TOKEN", "").strip()
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 
 def ask_gemini(prompt):
     if not GEMINI_KEY:
-        return "⚠️ Lỗi: Chưa cấu hình GEMINI_API_KEY trên Render."
+        return "⚠️ Chưa cấu hình GEMINI_API_KEY trên Render."
     try:
         client = genai.Client(api_key=GEMINI_KEY)
         response = client.models.generate_content(
@@ -24,7 +24,7 @@ def ask_gemini(prompt):
 
 def send_zalo_message(chat_id, text):
     if not ZALO_TOKEN:
-        print("Chưa có ZALO_BOT_TOKEN!")
+        print("Thiếu ZALO_BOT_TOKEN")
         return
     url = f"https://bot.zaloplatforms.com/v1/bot{ZALO_TOKEN}/sendMessage"
     payload = {
@@ -34,9 +34,9 @@ def send_zalo_message(chat_id, text):
     headers = {"Content-Type": "application/json"}
     try:
         res = requests.post(url, json=payload, headers=headers, timeout=15)
-        print("Zalo response:", res.status_code, res.text)
+        print("Kết quả gửi Zalo:", res.status_code, res.text)
     except Exception as e:
-        print(f"Lỗi gửi tin nhắn Zalo: {e}")
+        print(f"Lỗi kết nối gửi tin Zalo: {e}")
 
 @app.route("/", methods=["GET"])
 def home():
@@ -46,12 +46,12 @@ def home():
 @app.route("/", methods=["POST"])
 def webhook():
     if request.method == "GET":
-        return "Webhook endpoint sẵn sàng nhận dữ liệu từ Zalo!"
+        return "Webhook endpoint sẵn sàng!"
     
     data = request.get_json(silent=True) or {}
-    print("Dữ liệu nhận từ Zalo:", data)
+    print("Dữ liệu Zalo gửi sang:", data)
     
-    # Bóc tách thông tin tin nhắn từ cấu trúc Webhook của Zalo
+    # Bóc tách cấu trúc tin nhắn từ webhook Zalo
     message = data.get("message") or data.get("event", {}) or data
     chat_info = message.get("chat", {})
     chat_id = chat_info.get("id") or message.get("chat_id") or data.get("chat_id")
@@ -59,10 +59,11 @@ def webhook():
     
     if chat_id and text:
         t_lower = text.lower()
-        if t_lower.startswith("/gemini"):
-            user_prompt = text[7:].strip()
+        if "/gemini" in t_lower:
+            parts = text.split("/gemini", 1)
+            user_prompt = parts[1].strip() if len(parts) > 1 else ""
             if not user_prompt:
-                reply = "💎 Gemini: Bạn vui lòng nhập câu hỏi sau lệnh /gemini nhé!"
+                reply = "💎 Gemini: Bạn hãy nhập câu hỏi sau lệnh /gemini nhé!"
             else:
                 reply = f"💎 Gemini:\n{ask_gemini(user_prompt)}"
             send_zalo_message(chat_id, reply)
