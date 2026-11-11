@@ -35,7 +35,7 @@ def ask_gemini(prompt):
     try:
         client = genai.Client(api_key=GEMINI_KEY)
         res = client.models.generate_content(
-            model="gemini-2.5-flash",
+           model="gemini-3.8-flash",
             contents=prompt
         )
         return res.text
