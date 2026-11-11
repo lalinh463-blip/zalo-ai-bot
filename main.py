@@ -105,6 +105,7 @@ def polling_loop():
             time.sleep(5)
         time.sleep(1)
 
+@app.route("/webhook", methods=["GET", "POST"])
 @app.route("/")
 def home():
     return "Bot Zalo AI đang hoạt động 24/7!"
